@@ -17,44 +17,28 @@
  * under the License.
  */
 
-#include "cpu.h"
+#include <stdint.h>
+#include "syscfg/syscfg.h"
+#include "os/os_trace_api.h"
 
-static void (*radio_isr_addr)(void);
-static void (*rng_isr_addr)(void);
-static void (*rtc0_isr_addr)(void);
+#if MYNEWT_VAL(BLE_PHY_SYSVIEW)
 
-void
-isr_radio(void)
+static os_trace_module_t g_ble_phy_trace_mod;
+uint32_t ble_phy_trace_off;
+
+static void
+ble_phy_trace_module_send_desc(void)
 {
-    radio_isr_addr();
+    os_trace_module_desc(&g_ble_phy_trace_mod, "0 phy_set_tx cputime=%u usecs=%u");
+    os_trace_module_desc(&g_ble_phy_trace_mod, "1 phy_set_rx cputime=%u usecs=%u");
+    os_trace_module_desc(&g_ble_phy_trace_mod, "2 phy_disable");
 }
 
 void
-isr_rng(void)
+ble_phy_trace_init(void)
 {
-    rng_isr_addr();
+    ble_phy_trace_off =
+            os_trace_module_register(&g_ble_phy_trace_mod, "ble_phy", 3,
+                                     ble_phy_trace_module_send_desc);
 }
-
-void
-isr_rtc0(void)
-{
-    rtc0_isr_addr();
-}
-
-void
-ble_npl_hw_set_isr(int irqn, void (*addr)(void))
-{
-#ifndef MODULE_MCUX_KW41Z
-    switch (irqn) {
-    case RADIO_IRQn:
-        radio_isr_addr = addr;
-        break;
-    case RNG_IRQn:
-        rng_isr_addr = addr;
-        break;
-    case RTC0_IRQn:
-        rtc0_isr_addr = addr;
-        break;
-    }
 #endif
-}
