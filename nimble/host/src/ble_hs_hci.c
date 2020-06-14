@@ -306,6 +306,7 @@ ble_hs_hci_cmd_tx(uint16_t opcode, const void *cmd, uint8_t cmd_len,
         goto done;
     }
 
+    xtimer_usleep(10 * US_PER_MS);
     rc = ble_hs_hci_wait_for_ack();
     if (rc != 0) {
         ble_hs_sched_reset(rc);

@@ -249,6 +249,10 @@ os_memblock_get(struct os_mempool *mp)
         }
     }
 
+    if (block == NULL) {
+        printf("os_memblock_get returned NULL\n");
+        assert(0);
+    }
     return (void *)block;
 }
 

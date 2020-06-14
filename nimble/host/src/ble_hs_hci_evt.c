@@ -846,6 +846,7 @@ ble_hs_hci_evt_acl_process(struct os_mbuf *om)
 
     conn = ble_hs_conn_find(conn_handle);
     if (conn == NULL) {
+        printf("peer not connected\n");
         /* Peer not connected; quietly discard packet. */
         rc = BLE_HS_ENOTCONN;
         reject_cid = -1;
