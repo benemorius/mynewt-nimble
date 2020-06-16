@@ -897,7 +897,11 @@ ble_att_clt_tx_notify(uint16_t conn_handle, uint16_t handle,
     }
 
     req->banq_handle = htole16(handle);
-    os_mbuf_concat(txom2, txom);
+
+    /* copy data onto notification header */
+    uint8_t *b = os_mbuf_extend(txom2, txom->om_len);
+    memcpy(b, txom->om_data, txom->om_len);
+    os_mbuf_free(txom);
 
     return ble_att_tx(conn_handle, txom2);
 
