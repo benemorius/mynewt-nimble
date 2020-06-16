@@ -31,6 +31,10 @@
 #include <inttypes.h>
 #include "os/queue.h"
 
+#ifdef NIMBLE_USE_XTIMER
+#include "xtimer.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -49,8 +53,12 @@ typedef void (*hal_timer_cb)(void *arg);
  * structure; the hal timer API should be used.
  */
 struct hal_timer {
+#ifdef NIMBLE_USE_XTIMER
+    xtimer_t            xtimer;
+#else
     /** Internal platform specific pointer */
     void                *bsp_timer;
+#endif
     /** Callback function */
     hal_timer_cb        cb_func;
     /** Callback argument */

@@ -17,6 +17,197 @@
  * under the License.
  */
 
+#ifdef NIMBLE_USE_XTIMER
+
+#include <string.h>
+#include <stdint.h>
+#include <assert.h>
+#include <errno.h>
+#include "os/os.h"
+#include "hal/hal_timer.h"
+#include "xtimer.h"
+
+#define ENABLE_DEBUG (0)
+#include "debug.h"
+
+/**
+ * hal timer init
+ *
+ * Initialize platform specific timer items
+ *
+ * @param timer_num     Timer number to initialize
+ * @param cfg           Pointer to platform specific configuration
+ *
+ * @return int          0: success; error code otherwise
+ */
+int
+hal_timer_init(int timer_num, void *cfg)
+{
+    return 0;
+}
+
+/**
+ * hal timer config
+ *
+ * Configure a timer to run at the desired frequency. This starts the timer.
+ *
+ * @param timer_num
+ * @param freq_hz
+ *
+ * @return int
+ */
+int
+hal_timer_config(int timer_num, uint32_t freq_hz)
+{
+    DEBUG("configured timer %i for %lu\n", timer_num, freq_hz);
+    assert(freq_hz == 32768);
+    return 0;
+}
+
+/**
+ * hal timer deinit
+ *
+ * De-initialize a HW timer.
+ *
+ * @param timer_num
+ *
+ * @return int
+ */
+int
+hal_timer_deinit(int timer_num)
+{
+    return 0;
+}
+
+/**
+ * hal timer get resolution
+ *
+ * Get the resolution of the timer. This is the timer period, in nanoseconds
+ *
+ * @param timer_num
+ *
+ * @return uint32_t The
+ */
+uint32_t
+hal_timer_get_resolution(int timer_num)
+{
+    DEBUG("get resolution\n");
+    //     return 1 * NS_PER_US; /* 1us resolution */
+    return 1.0f / 32768 * NS_PER_US * US_PER_MS * MS_PER_SEC;
+}
+
+/**
+ * hal timer read
+ *
+ * Returns the timer counter. NOTE: if the timer is a 16-bit timer, only
+ * the lower 16 bits are valid. If the timer is a 64-bit timer, only the
+ * low 32-bits are returned.
+ *
+ * @return uint32_t The timer counter register.
+ */
+uint32_t
+hal_timer_read(int timer_num)
+{
+    DEBUG("timer read\n");
+    return xtimer_now_usec();
+}
+
+/**
+ * hal timer delay
+ *
+ * Blocking delay for n ticks
+ *
+ * @param timer_num
+ * @param ticks
+ *
+ * @return int 0 on success; error code otherwise.
+ */
+int
+hal_timer_delay(int timer_num, uint32_t ticks)
+{
+    xtimer_usleep(ticks);
+    return 0;
+}
+
+void _hal_timer_cb(void *arg)
+{
+    struct hal_timer *timer = arg;
+
+    //     DEBUG("cb_func 0x%lx\n", (uint32_t)timer->cb_func);
+
+    hal_timer_cb cb_func = timer->cb_func;
+    cb_func(timer->cb_arg);
+
+    //     xtimer_set(&timer->xtimer, 100 * US_PER_MS);
+}
+
+/**
+ *
+ * Initialize the HAL timer structure with the callback and the callback
+ * argument. Also initializes the HW specific timer pointer.
+ *
+ * @param cb_func
+ *
+ * @return int
+ */
+int
+hal_timer_set_cb(int timer_num, struct hal_timer *timer, hal_timer_cb cb_func,
+                 void *arg)
+{
+    DEBUG("set callback timer %i struct 0x%lx func 0x%lx\n", timer_num,
+          (uint32_t)timer, (uint32_t)cb_func);
+
+    timer->cb_func = cb_func;
+    timer->cb_arg = arg;
+
+    timer->xtimer.callback = _hal_timer_cb;
+    timer->xtimer.arg = timer;
+
+    return 0;
+}
+
+int
+hal_timer_start(struct hal_timer *timer, uint32_t ticks)
+{
+    DEBUG("timer start struct 0x%lx %lu usec\n", (uint32_t)timer, ticks);
+    if (ticks < 1000) {
+        ticks = 1000*1000;
+    }
+
+    xtimer_set(&timer->xtimer, xtimer_ticks_from_usec(ticks).ticks32);
+
+    return 0;
+}
+
+int
+hal_timer_start_at(struct hal_timer *timer, uint32_t tick)
+{
+    uint32_t delta = tick - xtimer_now_usec();
+
+    return hal_timer_start(timer, delta);
+}
+
+/**
+ * hal timer stop
+ *
+ * Stop a timer.
+ *
+ * @param timer
+ *
+ * @return int
+ */
+int
+hal_timer_stop(struct hal_timer *timer)
+{
+    DEBUG("timer stop\n");
+
+    xtimer_remove((xtimer_t *)timer);
+
+    return 0;
+}
+
+#else /* NIMBLE_USE_XTIMER */
+
 #include <string.h>
 #include <stdint.h>
 #include <assert.h>
@@ -827,3 +1018,5 @@ hal_timer_stop(struct hal_timer *timer)
 
     return 0;
 }
+
+#endif /* NIMBLE_USE_XTIMER */
